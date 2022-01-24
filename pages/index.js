@@ -2,7 +2,7 @@ import COLORS from "../constants/colors"
 import { Button, H1, Layout, Container, List, UnOrderList, Card,CardHeader,Image,CardFooter,H2, Loader,CardBody } from "../styles/index"
 import ENDPOINTS from "../constants/endpoints";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import getConfig from 'next/config'
 import { toast } from 'react-toastify';
 const { publicRuntimeConfig } = getConfig();
@@ -17,43 +17,55 @@ const index = () => {
     const [ usersFetched, setUsersFetched ] = useState(false);
     const [ pageNumber, setpageNumber ] = useState(1);
     const [ currentUser, setCurrentUser ] = useState(0);
+    const [ loading, setLoading ] = useState(false)
 
     const arrayPagination = (array, page_size, page_number) => array.slice((page_number - 1) * page_size, page_number * page_size)
 
+    const partialUsersArray = arrayPagination(users, NO_OF_USERS_TO_SHOW , pageNumber);
+
     const fetchUsers = async () => {
+        setLoading(true)
         setLoadButtonState(true)
 
         try {
             const response = await axios.get(`${BACKEND_BASE_URL}${ENDPOINTS.USERS}`);
             setUsers(response.data)
             setUsersFetched(true)
+            setLoading(false)
+
 
         } catch (error) {
             toast(error.message)
             setUsersFetched(false)
             setLoadButtonState(false)
+            setLoading(false)
+
         }
     }
 
     const nextUserHandler = () => {
-        if( currentUser < NO_OF_USERS_TO_SHOW - 1) {
-            setCurrentUser(currentUser + 1)
-        }
-        const hasNext = Math.floor((users.length - pageNumber - NO_OF_USERS_TO_SHOW) / pageNumber);
-        if(hasNext > 1 && currentUser === NO_OF_USERS_TO_SHOW - 1) {
+
+        if( currentUser < NO_OF_USERS_TO_SHOW - 1 ) 
+            setCurrentUser( currentUser + 1 )
+
+        if( users.length > pageNumber * NO_OF_USERS_TO_SHOW && currentUser === NO_OF_USERS_TO_SHOW - 1 ) {
             setpageNumber(pageNumber + 1)
             setCurrentUser(0)
         }
 
-        if( arrayPagination(users, NO_OF_USERS_TO_SHOW, pageNumber).length < NO_OF_USERS_TO_SHOW ) setCurrentUser(1)
+        if( partialUsersArray.length < NO_OF_USERS_TO_SHOW ) 
+            setCurrentUser( partialUsersArray.length - 1 )
+
     }
 
     const previousUserHandler = () => {
-        if(currentUser > 0 && currentUser <= NO_OF_USERS_TO_SHOW) setCurrentUser(currentUser - 1)
-        const hasPrevious = Math.floor((users.length - pageNumber + NO_OF_USERS_TO_SHOW) / pageNumber);
-        if(currentUser === 0 && users.length > hasPrevious ) {
-            setpageNumber(pageNumber - 1)
-            setCurrentUser(0)
+
+        if( currentUser > 0 ) 
+            setCurrentUser( currentUser - 1 )
+
+        if( currentUser === 0 ) {
+            setpageNumber( pageNumber > 1 ? pageNumber - 1 : 1 )
+            setCurrentUser( pageNumber === 1 ? 0 : NO_OF_USERS_TO_SHOW - 1 )
         }
     }
 
@@ -62,8 +74,8 @@ const index = () => {
             <Container>
                 <CardHeader>
                     <H1 display="inline-block">Users</H1>
-                    <Button btnName="Load users"
-                            bg={COLORS.black}
+                    <Button btnName={ loading ? "Loading..." : "Load users"}
+                            bg={ !loading && usersFetched ? COLORS.disable : loading && !usersFetched ? COLORS.loading : COLORS.black}
                             onClick={fetchUsers}
                             disabled={loadbuttonState}
                     />
@@ -79,7 +91,7 @@ const index = () => {
                 <Card>
                     <UnOrderList>
                     {
-                        arrayPagination(users, NO_OF_USERS_TO_SHOW , pageNumber).map((user,index) => {
+                        partialUsersArray.map((user,index) => {
                             return (
                                 <List key={index} border={ currentUser === index }>{user.firstName}</List>
                             )
@@ -90,8 +102,8 @@ const index = () => {
                         {
                             users.length > 0 && 
                             <CardBody>
-                                <Image src={arrayPagination(users, NO_OF_USERS_TO_SHOW , pageNumber)[currentUser]?.picture}/>
-                                <List>{arrayPagination(users, NO_OF_USERS_TO_SHOW , pageNumber)[currentUser]?.firstName}</List>
+                                <Image src={partialUsersArray[currentUser].picture}/>
+                                <List>{partialUsersArray[currentUser].firstName}</List>
                             </CardBody>
 
                         }

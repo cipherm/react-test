@@ -14,7 +14,7 @@ export const UnOrderList = styled.ul`
 `
 
 export const List = styled.li`
-    width: 100%;
+    width: 800px;
     background: ${COLORS.pureWhite};
     padding: 15px;
     margin: 5px;
